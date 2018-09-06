@@ -15,13 +15,25 @@ class decoder{
         $this->method   = $this->getMethod(0); //store Cipher method from library
     }
     
-    public function decode($inputKey,$inputData){
-        
-        
-        if(!$inputKey && !$inputData){
+    public function getDecodedData($inputKey,$inputData){
+                
+        if($inputKey!=null || $inputData!=null){
             
-            //$this->key      ='11627177330679ABBBDD341BEFF243F7';
-            //$this->data     = '4644e61e10102223100e7211112324e61e3c0700003005378b9263ef3eaac58f63368e2201b0da8f96c392f9f64745f44226a36dbcaf7cf8f3a2c299d2f93ad137eace2e43f6d0';
+            $this->key      = $inputKey;
+            $this->data     = $inputData;
+            $this->hexData  = str_split($this->data, 2);
+            $this->iv       = $this->generateInitVector(); //M Field + A Field + 8 bytes Acces No
+            $packetLengthPlusVerification = $this->hexData[0]+2;
+            $datat = implode('',array_slice($this->hexData, -$packetLengthPlusVerification, $packetLengthPlusVerification, true));
+            $res =  bin2hex(openssl_decrypt(hex2bin($datat), $this->method, hex2bin($this->key), OPENSSL_RAW_DATA | OPENSSL_ZERO_PADDING, hex2bin($this->iv)));
+            
+            return $res;
+            
+        }
+        
+    }
+    public function decode(){
+        
             $this->key      ='11627177330679ABBBDD341BEFF243F7';
             $this->data     = '4644e61e11102223100e7212112324e61e3c03000030058431bf8dc5630561faddd0644ef029144116e9891f80d4760b4e32f8ea3f12f8e20b8ff212db30b50c0587f505e5d10c';
             $this->hexData  = str_split($this->data, 2);
@@ -45,16 +57,6 @@ class decoder{
             $output = openssl_decrypt(hex2bin($datat), $this->method, hex2bin($this->key), OPENSSL_RAW_DATA | OPENSSL_ZERO_PADDING, hex2bin($this->iv));
             var_dump(bin2hex($output));
             
-        }else{
-            
-            $this->key      = $inputKey;
-            $this->data     = $inputData;
-            $this->hexData  = str_split($this->data, 2);
-            $this->iv       = $this->generateInitVector(); //M Field + A Field + 8 bytes Acces No
-            return bin2hex(openssl_decrypt(hex2bin($datat), $this->method, hex2bin($this->key), OPENSSL_RAW_DATA | OPENSSL_ZERO_PADDING, hex2bin($this->iv)));
-        
-            
-        }
         
     }
     

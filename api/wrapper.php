@@ -8,11 +8,14 @@ include 'class.api.php';
 
 class wrapper{
     
-    protected $decoder;
+    private $decoder;
+    private $parser;
+    private $api;
     
     public function __construct() {
          $this->decoder = new decoder();
          $this->parser = new mbusParser();
+         $this->api = new api();
     }
     
     public function run($call){
@@ -24,7 +27,13 @@ class wrapper{
            case 'parse':
                $this->parser->parseMbus();
                die();
-           default: return 'Dorothy is lost.';
+           case 'getdata':
+               $this->api->getdata();
+               die();
+           case 'getdecodeddata':
+               $this->api->getDecodedData();
+               die();
+           default: die('Dorothy is lost.');
            
        }
         
