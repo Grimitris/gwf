@@ -6,7 +6,45 @@
 var mapContainer;
 var markers = [];
 mapboxgl.accessToken = 'pk.eyJ1IjoiZGltcGFwIiwiYSI6ImNqbHJwZXpoaDA3NjMzcHFyNnlmY3lnc2YifQ.iwXWCA1zRNqmvsQpJkbsnw';
-var markerlocations = [];
+var dropoffs = turf.featureCollection([]);
+var nothing = turf.featureCollection([]);
+var pointHopper = {};
+var startLocation = [8.2968273, 47.038358];
+var endLocation = [8.2968273, 47.038358];
+var lastQueryTime = 0;
+var lastAtRestaurant = 0;
+var keepTrack = [];
+var currentSchedule = [];
+var currentRoute = null;
+
+var calls = {
+    
+    getData : function(){
+        $.ajax({
+            url: "http://kaagar.com/gwf/?call=decodedJsonData",
+            dataType: 'json',
+            type:'POST',
+            crossDomain: true
+        }).done(function(data) {
+            mapContainer.on('load', function() {
+                $.each(data,function(key,value){
+                    //console.log(value[0].key); 
+                    //console.log(value.telegram.length);
+                    if(value.address){
+                        map.addmarker(value.telegram.key,value.address,value.telegram.parsed);
+                    }
+                });
+                map.updateDropoffs(dropoffs);
+                
+            });
+            
+        });
+        
+    }
+    
+};
+
+
 
 var map = {
     
@@ -18,7 +56,18 @@ var map = {
             center: [8.2472,47.0547496], // starting position [lng, lat]
             zoom: 9 // starting zoom
         });
+        
+        //make the map all fancy and 3D building-y
         this.showBuildings();
+        
+        //create the dropoff layer to add navigation
+        this.addDropoffs();
+        
+        //add the routing layer to show route
+        this.addrouteLayer();
+        
+        
+        
     },
     
     addmarker : function(markerkey,location,data){
@@ -33,8 +82,10 @@ var map = {
             .then(function (response) {
                 if (response && response.body && response.body.features && response.body.features.length) {
                     var feature = response.body.features[0];
-                    //add to stored locations for routing
-                    markerlocations.push(feature.center);
+            
+                    //add to dropoffs
+                    map.newDropoff(mapContainer.unproject(feature.center));
+                    
                     //add marker with styled label
                     markers[markerkey] = new mapboxgl.Marker()
                         .setLngLat(feature.center)
@@ -87,8 +138,161 @@ var map = {
             }, labelLayerId);
         });
         
+    },
+    
+    addDropoffs : function(){
+        
+        mapContainer.on('load', function() {
+            mapContainer.addLayer({
+                id: 'dropoffs-symbol',
+                type: 'symbol',
+                source: {
+                  data: dropoffs,
+                  type: 'geojson'
+                },
+                layout: {
+                  'icon-allow-overlap': true,
+                  'icon-ignore-placement': true
+                  //'icon-image': 'marker-15'
+                }
+            });
+        });
+        
+    },
+    
+    newDropoff : function(coords) {
+        // Store the clicked point as a new GeoJSON feature with
+        // two properties: `orderTime` and `key`
+        var pt = turf.point(
+          [coords.lng, coords.lat],
+          {
+            orderTime: Date.now(),
+            key: Math.random()
+          }
+        );
+        dropoffs.features.push(pt);
+        pointHopper[pt.properties.key] = pt;
+    },
+
+    updateDropoffs : function(geojson) {
+        console.log(geojson);
+        mapContainer.getSource('dropoffs-symbol').setData(geojson);
+    },
+    
+    addrouteLayer : function(){
+        mapContainer.on('load', function() {
+            mapContainer.addSource('route', {
+              type: 'geojson',
+              data: nothing
+            });
+
+            mapContainer.addLayer({
+              id: 'routeline-active',
+              type: 'line',
+              source: 'route',
+              layout: {
+                'line-join': 'round',
+                'line-cap': 'round'
+              },
+              paint: {
+                'line-color': '#3887be',
+                'line-width': {
+                  base: 1,
+                  stops: [[12, 3], [22, 12]]
+                }
+              }
+            }, 'waterway-label');
+        });
+    },
+    
+    assembleQueryURL : function() {
+
+        // Store the location of the truck in a variable called coordinates
+        var coordinates = [startLocation];
+        var distributions = [];
+        keepTrack = [startLocation];
+        
+        // Create an array of GeoJSON feature collections for each point
+        var restJobs = map.objectToArray(pointHopper);
+       
+        if (restJobs.length > 0) {
+
+          // Check to see if the request was made after visiting the restaurant
+          var needToPickUp = restJobs.filter(function(d, i) {
+            return d.properties.orderTime > lastAtRestaurant;
+          }).length > 0;
+
+          // If the request was made after picking up from the restaurant,
+          // Add the restaurant as an additional stop
+          if (needToPickUp) {
+            var restaurantIndex = coordinates.length;
+            // Add the restaurant as a coordinate
+            coordinates.push(endLocation);
+            // push the restaurant itself into the array
+            keepTrack.push(pointHopper.warehouse);
+          }
+
+          restJobs.forEach(function(d, i) {
+            // Add dropoff to list
+            keepTrack.push(d);
+            coordinates.push(d.geometry.coordinates);
+            // if order not yet picked up, add a reroute
+            if (needToPickUp && d.properties.orderTime > lastAtRestaurant) {
+              distributions.push(restaurantIndex + ',' + (coordinates.length - 1));
+            }
+          });
+        }
+
+        // Set the profile to `driving`
+        // Coordinates will include the current location of the truck,
+        return 'https://api.mapbox.com/optimized-trips/v1/mapbox/driving/' + coordinates.join(';') + '?distributions=' + distributions.join(';') + '&overview=full&steps=true&geometries=geojson&source=first&access_token=' + mapboxgl.accessToken;
+    },
+
+    objectToArray : function(obj) {
+        
+        //console.log(Object.keys(obj));
+
+        var routeGeoJSON = Object.keys(obj).map(function(key){
+         
+          return obj[key];
+        
+        });
+        
+        return routeGeoJSON;
+    },
+    
+    requestOptimizedroute : function(){
+        
+        var urlh = map.assembleQueryURL();
+        
+        $.ajax({
+            method: 'GET',
+            url: urlh
+          }).done(function(data) {
+            // Create a GeoJSON feature collection
+            //console.log(data);
+            var routeGeoJSON = turf.featureCollection([turf.feature(data.trips[0].geometry)]);
+
+            // If there is no route provided, reset
+            if (!data.trips[0]) {
+              routeGeoJSON = nothing;
+            } else {
+              // Update the `route` source by getting the route source
+              // and setting the data equal to routeGeoJSON
+              mapContainer.getSource('route')
+                .setData(routeGeoJSON);
+            }        
+            
+        });
     }
-    
-    
-    
-}
+};
+
+$(document).ready(function(){
+      
+    map.loadMap();
+    calls.getData();
+    $('body').on( "click", "#getRoutes", function() {
+       map.requestOptimizedroute();
+    });
+
+});

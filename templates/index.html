@@ -44,7 +44,7 @@
           </a>
           <div class="dropdown-menu dropdown-menu-right" aria-labelledby="alertsDropdown">
             <a class="dropdown-item" href="#">Refresh Data</a>
-            <a class="dropdown-item" href="#">Get Routes</a>
+            <a class="dropdown-item" id="getRoutes" href="#">Get Routes</a>
             <a class="dropdown-item" href="#">Center Map</a>
           </div>
         </li>
@@ -159,6 +159,7 @@
     <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.48.0/mapbox-gl.js'></script>
     <script src='https://unpkg.com/es6-promise@4.2.4/dist/es6-promise.auto.min.js'></script>
     <script src="https://unpkg.com/@mapbox/mapbox-sdk/umd/mapbox-sdk.min.js"></script>
+    <script src='https://npmcdn.com/@turf/turf/turf.min.js'></script>
     <!-- Bootstrap core JavaScript-->
     <script src="vendor/jquery/jquery.min.js"></script>
     <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
@@ -169,7 +170,7 @@
     <!-- Custom scripts for all pages-->
     <script src="js/sb-admin.min.js"></script>
     
-    <script src="js/meters.js"></script>
+    <script src="js/map.js"></script>
 
 
   </body>
