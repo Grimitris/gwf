@@ -31,7 +31,10 @@ class wrapper{
                $this->api->getdata();
                die();
            case 'getdecodeddata':
-               $this->api->getDecodedData();
+               $this->api->getDecodedData(true);
+               die();
+           case 'decodedJsonData':
+               echo json_encode($this->api->getDecodedData());
                die();
            default: die('Dorothy is lost.');
            

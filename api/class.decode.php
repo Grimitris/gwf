@@ -25,9 +25,11 @@ class decoder{
             $this->iv       = $this->generateInitVector(); //M Field + A Field + 8 bytes Acces No
             $packetLengthPlusVerification = $this->hexData[0]+2;
             $datat = implode('',array_slice($this->hexData, -$packetLengthPlusVerification, $packetLengthPlusVerification, true));
+            $header = implode('',array_slice($this->hexData, 0, -$packetLengthPlusVerification, true));
             $res =  bin2hex(openssl_decrypt(hex2bin($datat), $this->method, hex2bin($this->key), OPENSSL_RAW_DATA | OPENSSL_ZERO_PADDING, hex2bin($this->iv)));
             
-            return $res;
+            //var_dump(array('header'=>$header,'data'=>$res));
+            return array('header'=>$header,'data'=>$res);
             
         }
         
@@ -42,8 +44,9 @@ class decoder{
             //get the last 46 bytes of data (plus two which are the verification bytes)
             echo 'This is a test scenario. Run with inputs for return real data<br />';
             $packetLengthPlusVerification = $this->hexData[0]+2;
-            $datat = implode('',array_slice($this->hexData, -$packetLengthPlusVerification, $packetLengthPlusVerification, true));
-
+            $datat  = implode('',array_slice($this->hexData, -$packetLengthPlusVerification, $packetLengthPlusVerification, true));
+            
+            
             echo 'data: '.$this->data.'<br />';
             echo 'No header data: '.$datat.'<br />';
             echo 'Key: '.$this->key.'<br />';

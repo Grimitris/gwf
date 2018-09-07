@@ -15,60 +15,63 @@ class mbusParser{
         
     }
     
-    public function parseMbus($packet){
-        
-        if($packet){
-            
-            
-        }else{
-           echo $this->packet;
-           echo '<br />';
-           $split = str_split($this->packet, 2);
-           
-           echo 'DIF: '.$split[2].' - Name: '.$this->difs[$split[2]]['name'].' Length : '.$this->difs[$split[2]]['length'].'<br />'; 
-           echo 'VIF: '.$split[3].' - '.$this->vifs[$split[3]].' <br />';
-           echo 'VALUE: '.$split[4].' '.$split[5].' '.$split[6].' '.$split[7].' <br />';
-           echo 'Decode attampt: '.$split[7].''.$split[6].''.$split[5].''.$split[4].' <br />';
-           
-           echo '<br /><br />';
-           
-           echo 'DIF: '.$split[8].' - Name: '.$this->difs[$split[8]]['name'].' Length : '.$this->difs[$split[8]]['length'].'<br />'; 
-           echo 'VIF: '.$split[9].' - '.$this->vifs[$split[9]].' <br />';
-           echo 'VALUE: '.$split[10].' '.$split[11].' '.$split[12].' '.$split[13].' <br />';
-           
-           echo '<br /><br />';
-           
-           echo 'DIF: '.$split[14].' - Name: '.$this->difs[$split[14]]['name'].' Length : '.$this->difs[$split[14]]['length'].'<br />'; 
-           echo 'VIF: '.$split[15].' - '.(($this->vifs[$split[15]])?$this->vifs[$split[15]]:'VIF-Extension table').' <br />';
-           echo 'VIFE: '.$split[16].' - <br />';
-           echo 'VALUE: '.$split[17].' '.$split[18].' '.$split[19].' '.$split[20].'<br />';
+    public function parseMbus($packet,$header,$debug){
+       
+       if($packet) $this->packet = $packet;
+       if($debug){
+            //echo $this->packet;
+            echo '<br />';
+            $split = str_split($this->packet, 2);
 
-           echo '<br /><br />';
-           
-           echo 'DIF: '.$split[21].' - Name: '.$this->difs[$split[21]]['name'].' Length : '.$this->difs[$split[21]]['length'].'<br />'; 
-           echo 'VIF: '.$split[22].' - '.(($this->vifs[$split[15]])?$this->vifs[$split[15]]:'VIF-Extension table').' <br />';
-           echo 'VIFE: '.$split[23].' - <br />';
-           echo 'VALUE: '.$split[24].' '.$split[25].' '.$split[26].' '.$split[27].'<br />';
+            echo 'DIF: '.$split[2].' - Name: '.$this->difs[$split[2]]['name'].' Length : '.$this->difs[$split[2]]['length'].'<br />'; 
+            echo 'VIF: '.$split[3].' - '.$this->vifs[$split[3]].' <br />';
+            echo 'VALUE: '.$split[4].' '.$split[5].' '.$split[6].' '.$split[7].' <br />';
+            echo 'Decode attampt: '.$split[7].''.$split[6].''.$split[5].''.$split[4].' <br />';
 
-           
-           /*
-           var_dump($split[2].' '.$split[3].' '.$split[4].' '.$split[5].' '.$split[6].' '.$split[7]);
-           echo '<br />DR2: <br />';
-           var_dump($split[8].' '.$split[9].' '.$split[10].' '.$split[11].' '.$split[12].' '.$split[13]);
-           echo '<br />DR3: <br />';
-           var_dump($split[14].' '.$split[15].' '.$split[16].' '.$split[17].' '.$split[18]);
-           echo'<br />';
-           echo'<br />';
-           foreach($split as $k=>$v){
-               
-               echo $v.' ';//.' - '.hex2bin($v);
-               
-           }
-            * 
-            */
-           //var_dump(str_split($this->packet, 2));
+            echo '<br /><br />';
+
+            echo 'DIF: '.$split[8].' - Name: '.$this->difs[$split[8]]['name'].' Length : '.$this->difs[$split[8]]['length'].'<br />'; 
+            echo 'VIF: '.$split[9].' - '.$this->vifs[$split[9]].' <br />';
+            echo 'VALUE: '.$split[10].' '.$split[11].' '.$split[12].' '.$split[13].' <br />';
+
+            echo '<br /><br />';
+
+            echo 'DIF: '.$split[14].' - Name: '.$this->difs[$split[14]]['name'].' Length : '.$this->difs[$split[14]]['length'].'<br />'; 
+            echo 'VIF: '.$split[15].' - '.(($this->vifs[$split[15]])?$this->vifs[$split[15]]:'VIF-Extension table').' <br />';
+            echo 'VIFE: '.$split[16].' - <br />';
+            echo 'VALUE: '.$split[17].' '.$split[18].' '.$split[19].' '.$split[20].'<br />';
+
+            echo '<br /><br />';
+
+            echo 'DIF: '.$split[21].' - Name: '.$this->difs[$split[21]]['name'].' Length : '.$this->difs[$split[21]]['length'].'<br />'; 
+            echo 'VIF: '.$split[22].' - '.(($this->vifs[$split[15]])?$this->vifs[$split[15]]:'VIF-Extension table').' <br />';
+            echo 'VIFE: '.$split[23].' - <br />';
+            echo 'VALUE: '.$split[24].' '.$split[25].' '.$split[26].' '.$split[27].'<br />';
+
+
+            /*
+            var_dump($split[2].' '.$split[3].' '.$split[4].' '.$split[5].' '.$split[6].' '.$split[7]);
+            echo '<br />DR2: <br />';
+            var_dump($split[8].' '.$split[9].' '.$split[10].' '.$split[11].' '.$split[12].' '.$split[13]);
+            echo '<br />DR3: <br />';
+            var_dump($split[14].' '.$split[15].' '.$split[16].' '.$split[17].' '.$split[18]);
+            echo'<br />';
+            echo'<br />';
+            foreach($split as $k=>$v){
+
+                echo $v.' ';//.' - '.hex2bin($v);
+
+            }
+             * 
+             */
+            //var_dump(str_split($this->packet, 2));
+
+            echo '<Br />----------------------------<br />';
+
+       }   
+
             
-        }
+       return 'Temp decoded data: Under Construction.';
         
         
     }

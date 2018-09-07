@@ -8,7 +8,6 @@ class api{
         
         $this->meters = array();
         
-        
     }
     
     public function getdata($return){
@@ -75,17 +74,46 @@ class api{
         
     }
     
-    public function getDecodedData(){
+    public function getDecodedData($debug){
         $this->decoder = new decoder();
+        $this->parser = new mbusParser();
         $this->getdata(true);
         foreach($this->meters as $k=>$v){
             
             $decodedTelegram = $this->decoder->getDecodedData($v['telegram']['key'],$v['telegram']['encoded']);
-            $this->meters[$k]['telegram']['decoded']= $decodedTelegram;
+            if($decodedTelegram['data'] && $decodedTelegram['data']!=null){
+                $this->meters[$k]['telegram']['decoded'] = $decodedTelegram['data'];
+                $this->meters[$k]['telegram']['header'] = $decodedTelegram['header'];
+                if($debug){
+                     //debugging stuff. will remove
+                    echo 'Key: '.$v['telegram']['key'].'<br />';
+                    echo 'Encoded: '.$v['telegram']['encoded'].'<br />';
+                    echo 'Header: '.$decodedTelegram['header'].'<br />';
+                    echo 'Decoded: '.$decodedTelegram['data'].'<br />...<br />';
+                    
+                }
+               
+                $parsedData = $this->parser->parseMbus($decodedTelegram['data'],$decodedTelegram['header'],($debug)?true:false);
+                $this->meters[$k]['telegram']['parsed']= $parsedData;
+                
+            }
+            
             
         }
         
-        var_dump($this->meters);
+        return $this->meters;
+        
+    }
+    
+    public function getParsedData(){
+        
+        $this->parser = new mbusParser();
+        foreach($this->meters as $k=>$v){
+            
+            $parsedData = $this->parser($v['telegram']['decoded']);
+            $this->meters[$k]['telegram']['parsed']= $parsedData;
+            
+        }
         
     }
     
