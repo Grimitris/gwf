@@ -17,6 +17,9 @@
     <!-- Custom fonts for this template-->
     <link href="vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
 
+    <!-- MapBox css -->
+    <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.48.0/mapbox-gl.css' rel='stylesheet' />
+    
     <!-- Custom styles for this template-->
     <link href="css/sb-admin.css" rel="stylesheet">
     <link href="css/meters.css" rel="stylesheet">
@@ -123,13 +126,9 @@
               <i class="fas fa-map-marked"></i>
               Map View</div>
             <div class="card-body">
-                <div id="mapArea">
-                    
-                    Hi, I'm the map
-                    
-                </div>
+                <div id="mapArea"></div>
             </div>
-            <div class="card-footer small text-muted">Powered by coffee</div>
+            <div class="card-footer small text-muted">Powered by coffee and mapbox</div>
           </div>
 
 
@@ -156,6 +155,10 @@
       <i class="fas fa-angle-up"></i>
     </a>
 
+    <!-- MapBox -->
+    <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.48.0/mapbox-gl.js'></script>
+    <script src='https://unpkg.com/es6-promise@4.2.4/dist/es6-promise.auto.min.js'></script>
+    <script src="https://unpkg.com/@mapbox/mapbox-sdk/umd/mapbox-sdk.min.js"></script>
     <!-- Bootstrap core JavaScript-->
     <script src="vendor/jquery/jquery.min.js"></script>
     <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
@@ -165,6 +168,7 @@
 
     <!-- Custom scripts for all pages-->
     <script src="js/sb-admin.min.js"></script>
+    
     <script src="js/meters.js"></script>
 
 

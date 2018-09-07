@@ -4,10 +4,18 @@
  * and open the template in the editor.
  */
 
-
 $(document).ready(function(){
     
-    calls.getData();
+    
+    
+    $.getScript("js/map.js").done(function( script, textStatus ) {
+          map.loadMap();
+          calls.getData();
+    }).fail(function( jqxhr, settings, exception ) {
+          console.log( "Triggered ajaxError handler." );
+    });
+    
+    
     
 });
 
@@ -21,7 +29,15 @@ var calls = {
             crossDomain: true
         }).done(function(data) {
             
-            console.log(data);
+            $.each(data,function(key,value){
+                //console.log(value[0].key); 
+                //console.log(value.telegram.length);
+                if(value.address){
+                    map.addmarker(value.telegram.key,value.address,value.telegram.parsed);
+                }
+                
+                
+            });
             
         });
         
