@@ -1,6 +1,7 @@
 /* 
  * Telegrams GWF map loading functions
  * Access token: pk.eyJ1IjoiZGltcGFwIiwiYSI6ImNqbHJwZXpoaDA3NjMzcHFyNnlmY3lnc2YifQ.iwXWCA1zRNqmvsQpJkbsnw
+ * Author: Dimitris Papadopoulos
  */
 
 var mapContainer;
@@ -9,8 +10,8 @@ mapboxgl.accessToken = 'pk.eyJ1IjoiZGltcGFwIiwiYSI6ImNqbHJwZXpoaDA3NjMzcHFyNnlmY
 var dropoffs = turf.featureCollection([]);
 var nothing = turf.featureCollection([]);
 var pointHopper = {};
-var startLocation = [8.2968273, 47.038358];
-var endLocation = [8.2968273, 47.038358];
+var startLocation = [8.2989119,47.0384419]; 
+var endLocation = [8.2989119,47.0384419];
 var lastQueryTime = 0;
 var lastAtRestaurant = 0;
 var keepTrack = [];
@@ -28,8 +29,6 @@ var calls = {
         }).done(function(data) {
             mapContainer.on('load', function() {
                 $.each(data,function(key,value){
-                    //console.log(value[0].key); 
-                    //console.log(value.telegram.length);
                     if(value.address){
                         map.addmarker(value.telegram.key,value.address,value.telegram.parsed);
                     }
@@ -217,13 +216,12 @@ var map = {
        
         if (restJobs.length > 0) {
 
-          // Check to see if the request was made after visiting the restaurant
+          
           var needToPickUp = restJobs.filter(function(d, i) {
             return d.properties.orderTime > lastAtRestaurant;
           }).length > 0;
 
-          // If the request was made after picking up from the restaurant,
-          // Add the restaurant as an additional stop
+         
           if (needToPickUp) {
             var restaurantIndex = coordinates.length;
             // Add the restaurant as a coordinate
@@ -231,18 +229,21 @@ var map = {
             // push the restaurant itself into the array
             keepTrack.push(pointHopper.warehouse);
           }
-
+          var ia = 0;
           restJobs.forEach(function(d, i) {
+            if(ia > 9)return;
             // Add dropoff to list
             keepTrack.push(d);
             coordinates.push(d.geometry.coordinates);
+            //console.log(d.geometry.coordinates);
             // if order not yet picked up, add a reroute
             if (needToPickUp && d.properties.orderTime > lastAtRestaurant) {
-              distributions.push(restaurantIndex + ',' + (coordinates.length - 1));
+              //distributions.push(restaurantIndex + ',' + (coordinates.length - 1));
             }
+            ia++;
           });
         }
-
+        
         // Set the profile to `driving`
         // Coordinates will include the current location of the truck,
         return 'https://api.mapbox.com/optimized-trips/v1/mapbox/driving/' + coordinates.join(';') + '?distributions=' + distributions.join(';') + '&overview=full&steps=true&geometries=geojson&source=first&access_token=' + mapboxgl.accessToken;
@@ -296,3 +297,10 @@ $(document).ready(function(){
     });
 
 });
+
+/*
+ * https://api.mapbox.com/optimized-trips/v1/mapbox/driving/8.2989119,47.0384419;8.2989119,47.0384419;6.695703551636683,47.24420591937948;6.695695186917732,47.24420327073392;6.695696039735537,47.244203262344655;6.695703551636683,47.24420591937948;6.695696642613257,47.244203278192174;6.695703551636683,47.24420591937948;6.695703551636683,47.24420591937948;6.695703551636683,47.24420591937948;6.695696407781128,47.24420406691132;6.695703551636683,47.24420591937948?overview=full&steps=true&geometries=geojson&source=first&access_token=pk.eyJ1IjoiZGltcGFwIiwiYSI6ImNqbHJwZXpoaDA3NjMzcHFyNnlmY3lnc2YifQ.iwXWCA1zRNqmvsQpJkbsnw
+ https://api.mapbox.com/optimized-trips/v1/mapbox/driving/8.2989119,47.0384419;8.2989119,47.0384419;6.695703551636683,47.24420591937948;6.695695186917732,47.24420327073392;6.695696039735537,47.244203262344655;6.695703551636683,47.24420591937948;6.695696642613257,47.244203278192174;6.695703551636683,47.24420591937948;6.695703551636683,47.24420591937948;6.695703551636683,47.24420591937948;6.695696407781128,47.24420406691132;6.695703551636683,47.24420591937948?distributions=&overview=full&steps=true&geometries=geojson&source=first&access_token=pk.eyJ1IjoiZGltcGFwIiwiYSI6ImNqbHJwZXpoaDA3NjMzcHFyNnlmY3lnc2YifQ.iwXWCA1zRNqmvsQpJkbsnw
+ *
+ *https://api.mapbox.com/optimized-trips/v1/mapbox/driving/8.2989119,47.0384419;8.2989119,47.0384419;7.19626812685155,47.24420591937948;7.19625976213257,47.24420327073392;7.196260614950404,47.244203262344655;7.19626812685155,47.24420591937948;7.196261217828152,47.244203278192174;7.19626812685155,47.24420591937948;7.19626812685155,47.24420591937948;7.19626812685155,47.24420591937948;7.1962609829959945,47.24420406691132;7.19626812685155,47.24420591937948?distributions=&overview=full&steps=true&geometries=geojson&source=first&access_token=pk.eyJ1IjoiZGltcGFwIiwiYSI6ImNqbHJwZXpoaDA3NjMzcHFyNnlmY3lnc2YifQ.iwXWCA1zRNqmvsQpJkbsnw
+ **/
