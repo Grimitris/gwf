@@ -73,9 +73,9 @@ class decoder{
     private function generateInitVector(){
 
         $Mfield = $this->hexData[2].$this->hexData[3]; //M-Field (bits 2-4)
-        $Afield = $this->hexData[4].$this->hexData[5].$this->hexData[6].$this->hexData[7].$this->hexData[8].$this->hexData[9];  //A-Field (bits 4-8)
-        $accesnum = str_repeat($this->hexData[12],8); //get access number with CRC missing (bit 12). 8 bits of that
-        
+        $Afield = $this->hexData[11].$this->hexData[12].$this->hexData[13].$this->hexData[14].$this->hexData[17].$this->hexData[18];  //A-Field (bits 4-8)
+        $accesnum = str_repeat($this->hexData[19],8); //get access number with CRC missing (bit 19). 8 bits of that
+        echo $Mfield.$Afield.$accesnum.' <br />___<br/ >';
         return $Mfield.$Afield.$accesnum;
         
     }

@@ -88,8 +88,8 @@ class api{
                      //debugging stuff. will remove
                     echo 'Key: '.$v['telegram']['key'].'<br />';
                     echo 'Encoded: '.$v['telegram']['encoded'].'<br />';
-                    echo 'Header: '.$decodedTelegram['header'].'<br />';
-                    echo 'Decoded: '.$decodedTelegram['data'].'<br />...<br />';
+                    echo 'Header: '.implode(' ',str_split($decodedTelegram['header'], 2)).'<br />';
+                    echo 'Decoded: '.implode(' ',str_split($decodedTelegram['data'], 2)).'<br />...<br />';
                     
                 }
                
