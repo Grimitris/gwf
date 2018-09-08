@@ -76,11 +76,16 @@ class api{
     
     public function getDecodedData($debug){
         $this->decoder = new decoder();
-        $this->parser = new mbusParser();
+        
         $this->getdata(true);
         foreach($this->meters as $k=>$v){
+            $this->parser = new mbusParser();
+            if(substr($v['telegram']['encoded'],46,4)!='2f2f'){ //check if telegram is already decoded
+                $decodedTelegram = $this->decoder->getDecodedData($v['telegram']['key'],$v['telegram']['encoded']);
+            }else{
+                $decodedTelegram['data'] = substr($v['telegram']['encoded'],46);
+            }
             
-            $decodedTelegram = $this->decoder->getDecodedData($v['telegram']['key'],$v['telegram']['encoded']);
             if($decodedTelegram['data'] && $decodedTelegram['data']!=null){
                 $this->meters[$k]['telegram']['decoded'] = $decodedTelegram['data'];
                 $this->meters[$k]['telegram']['header'] = $decodedTelegram['header'];

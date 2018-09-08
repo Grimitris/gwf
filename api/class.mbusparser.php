@@ -32,50 +32,52 @@ class mbusParser{
             $headersplit = str_split($this->header,2);
             $this->hopper = str_split($this->packet, 2);
             
-           
+            //echo $this->hopper[$this->curpos];
+            
             $curdif = $this->calculateDif($this->hopper[$this->curpos]);
+            
             while($curdif['status'] == 'OK'){
-                
-                $difHops = $curdif['hops']; //get data size
+                //var_dump($curdif);
+                $difHops = (int)$curdif['hops']; //get data size
                 $difType = $curdif['type']; //get data type
                 
                 $vifData = $this->calculateVif();
                 $this->curpos++;
                 
                 $thisVif = $vifData['vif']; //get vif
+                $thisVifPost = $vifData['postfix']; //get vif
+                $thisVifMulti = $vifData['multiplier']; //get vif
+
                 
-                $this->parseData($difhops,$difType,$thisVif);
+                var_dump($this->parseData($difHops,$difType,$thisVif,$thisVifMulti));
+                echo '<br />...<br />';
                 
                 
                 $curdif = $this->calculateDif($this->hopper[$this->curpos]);
+                
+                
             }
+
             
-            
-            
-
-
-
-
-            echo '<Br />----------------------------<br />';
-
        }   
 
             
-       return 'Temp decoded data Under Construction.';
+       //return 'Temp decoded data Under Construction.';
         
     }
     
-    private function parseData($difhops,$difType,$thisVif){
+    private function parseData($difhops,$difType,$thisVif,$thisVifMulti){
         
         $toParse = [];
         
-        for($i = 0; $i <= $difhops; $i++){
+        for($i = 0; $i <$difhops; $i++){
             
-            $toParse.push($this->hopper[$this->curpos]);
+            array_push($toParse,$this->hopper[$this->curpos]);
+            
             $this->curpos++;
             
         }
-        
+         
         if($thisVif == 'Date type G' || $thisVif == 'DateTime type F'){
             
             return $this->decodeDate($toParse);
@@ -83,8 +85,40 @@ class mbusParser{
         }else{
             
             switch($difType){
-            
-            
+                case 'bcd':
+                    //get vif and check for multiplier
+                    return (float)implode('',array_reverse($toParse))*((isset($thisVifMulti) && $thisVifMulti)?(float)$thisVifMulti:1);
+                    break;
+                case 'IntBin':
+                    //$toParse reverse join to dec
+                    
+                    return (float)hexdec(implode('',array_reverse($toParse)))*((isset($thisVifMulti) && $thisVifMulti)?(float)$thisVifMulti:1);
+                    
+                    break;
+                case 'varlength':
+                    //no
+                    return 'NaN';
+                    break;
+                case 'special':
+                    //manufacturer special
+                    
+                    $thisData = $this->hopper[$this->curpos];
+                    $toret = [];
+                    while($thisData != '2f'){
+                        
+                        array_push($toret,array('byte'=>$this->curpos,'data'=>$thisData));
+                        $this->curpos++;
+                        $thisData = $this->hopper[$this->curpos];
+                    
+                    }
+                    return $toret;
+                    
+                    break;
+                case 'nodata':
+                    return 'No Data';
+                    break;
+                default:
+                    return 'Error parsing data.';
             
             
             }
@@ -97,22 +131,31 @@ class mbusParser{
     private function decodeDate($data){
         
         foreach($data as $k=>$v){
-
-            $convdata.=$this->convertToBin( implode('',$v) );
+            
+            $convdata.=strrev($this->convertToBin( $v ));
 
         }
-        $convdata=strrev($convdata);
         
         if(count($data) == 2){
+            $day = bindec(strrev(substr($convdata,0,5)));
+            $month = bindec(strrev(substr($convdata,8,4)));
+            $year = bindec(strrev(substr($convdata,12,4)).strrev(substr($convdata,5,3)));
             
-            
-            
+            return $day.'.'.$month.'.'.$year;
             
             
         }else{
             
+            $min = bindec(strrev(substr($convdata,0,6)));
+            $hour = bindec(strrev(substr($convdata,8,5)));
+            $day = bindec(strrev(substr($convdata,16,5)));
+            $month = bindec(strrev(substr($convdata,24,4)));
+            $year2 = bindec(strrev(substr($convdata,13,2)));
+            $year1 = bindec(strrev(substr($convdata,28,4)).strrev(substr($convdata,21,3)));
             
+            $year = 1900+$year2*100+$year1;
             
+            return $day.'-'.$month.'-'.$year.' '.$hour.':'.$min;
         }
         
         
@@ -251,9 +294,9 @@ class mbusParser{
         
         if($this->hopper[$this->curpos] == 'fd' || $this->hopper[$this->curpos] == 'fb'){
             $this->curpos++;
-            return array('vif'=>$this->vifs[$this->hopper[$this->curpos]]['vife1']);
+            return array('vif'=>$this->vifs[$this->hopper[$this->curpos]]['vife1'],'postfix'=>$this->vifs[$this->hopper[$this->curpos]]['postfix'],'multiplier'=>$this->vifs[$this->hopper[$this->curpos]]['multiplier']);
         }else{
-            return array('vif'=>$this->vifs[$this->hopper[$this->curpos]]['vif']);
+            return array('vif'=>$this->vifs[$this->hopper[$this->curpos]]['vif'],'postfix'=>$this->vifs[$this->hopper[$this->curpos]]['postfix'],'multiplier'=>$this->vifs[$this->hopper[$this->curpos]]['multiplier']);
         }
         
     }
@@ -282,7 +325,7 @@ class mbusParser{
                 ,'10'=>array('vif'=>'Volume cm<sup>3</sup>')
                 ,'11'=>array('vif'=>'Volume 10<sup>-5</sup> m<sup>3</sup>')
                 ,'12'=>array('vif'=>'Volume 10<sup>-4</sup> m<sup>3</sup>')
-                ,'13'=>array('vif'=>'Volume l')
+                ,'13'=>array('vif'=>'Volume 10<sup>-3</sup> m<sup>3</sup>','multiplier'=>0.001,'postfix'=>'m<sup>3</sup>') //10^-3
                 ,'14'=>array('vif'=>'Volume 10<sup>-2</sup> m<sup>3</sup>')
                 ,'15'=>array('vif'=>'Volume 10<sup>-1</sup> m<sup>3</sup>')
                 ,'16'=>array('vif'=>'Volume m<sup>3</sup>')
