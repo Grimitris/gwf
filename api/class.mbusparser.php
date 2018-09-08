@@ -115,10 +115,11 @@ class mbusParser{
                     
                     break;
                 case 'nodata':
-                    return 'No Data';
+                    return array('result'=>'No Data');
                     break;
                 default:
-                    return 'Error parsing data.';
+                    return array('result'=>'Error parsing data.');
+                    
             
             
             }
@@ -323,11 +324,11 @@ class mbusParser{
                 ,'0e'=>array('vif'=>'Energy MJ')
                 ,'0f'=>array('vif'=>'Energy 10<sup>7</sup> J')
                 ,'10'=>array('vif'=>'Volume cm<sup>3</sup>')
-                ,'11'=>array('vif'=>'Volume 10<sup>-5</sup> m<sup>3</sup>')
-                ,'12'=>array('vif'=>'Volume 10<sup>-4</sup> m<sup>3</sup>')
+                ,'11'=>array('vif'=>'Volume 10<sup>-5</sup> m<sup>3</sup>','multiplier'=>0.00001,'postfix'=>'m<sup>3</sup>')
+                ,'12'=>array('vif'=>'Volume 10<sup>-4</sup> m<sup>3</sup>','multiplier'=>0.0001,'postfix'=>'m<sup>3</sup>')
                 ,'13'=>array('vif'=>'Volume 10<sup>-3</sup> m<sup>3</sup>','multiplier'=>0.001,'postfix'=>'m<sup>3</sup>') //10^-3
-                ,'14'=>array('vif'=>'Volume 10<sup>-2</sup> m<sup>3</sup>')
-                ,'15'=>array('vif'=>'Volume 10<sup>-1</sup> m<sup>3</sup>')
+                ,'14'=>array('vif'=>'Volume 10<sup>-2</sup> m<sup>3</sup>','multiplier'=>0.01,'postfix'=>'m<sup>3</sup>')
+                ,'15'=>array('vif'=>'Volume 10<sup>-1</sup> m<sup>3</sup>','multiplier'=>0.1,'postfix'=>'m<sup>3</sup>')
                 ,'16'=>array('vif'=>'Volume m<sup>3</sup>')
                 ,'17'=>array('vif'=>'Volume 10<sup>1</sup> m<sup>3</sup>')
                 ,'18'=>array('vif'=>'Mass g')
