@@ -42,6 +42,7 @@ class mbusParser{
         $curdif = $this->calculateDif($this->hopper[$this->curpos]);
 
         //Traverse the telegram while there are still data
+        $i = 0;
         while($curdif['status'] == 'OK'){
             //var_dump($curdif);
             $difHops = (int)$curdif['hops']; //get data size
@@ -56,6 +57,11 @@ class mbusParser{
 
             $parsed = $this->parseData($difHops,$difType,$thisVif,$thisVifMulti,$thisVifPost);
             if($difType=='special') $thisVif = 'Special Functions';
+            if($toreturn['data'][$thisVif]){
+                $i++;
+                $thisVif=$thisVif.'_'.$i;
+            }
+            
             $toreturn['data'][$thisVif] = $parsed;
            
 
@@ -63,6 +69,7 @@ class mbusParser{
 
 
         }
+        
         return $toreturn;
         
         
@@ -93,14 +100,14 @@ class mbusParser{
                     return (string)$calc.$thisVifPost;
                     break;
                 case 'IntBin':
-                    //$toParse reverse join to dec
-                    
+                    //
                     $calc = (float)hexdec(implode('',array_reverse($toParse)))*((isset($thisVifMulti) && $thisVifMulti)?(float)$thisVifMulti:1);
                     return (string)$calc.$thisVifPost;
                     break;
                 case 'varlength':
-                    //no
-                    return 'NaN';
+                    //
+                    $calc = hexdec(implode('',array_reverse($toParse)));
+                    return (string)$calc.$thisVifPost;
                     break;
                 case 'special':
                     //manufacturer special
@@ -109,7 +116,7 @@ class mbusParser{
                     $toret = [];
                     while($thisData != '2f'){
                         
-                        array_push($toret,array('byte'=>$this->curpos,'data'=>$thisData));
+                        array_push($toret,array('byte'=>$this->curpos+24,'data'=>$thisData));
                         $this->curpos++;
                         $thisData = $this->hopper[$this->curpos];
                     

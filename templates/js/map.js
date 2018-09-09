@@ -7,16 +7,10 @@
 var mapContainer;
 var markers = [];
 mapboxgl.accessToken = 'pk.eyJ1IjoiZGltcGFwIiwiYSI6ImNqbHJwZXpoaDA3NjMzcHFyNnlmY3lnc2YifQ.iwXWCA1zRNqmvsQpJkbsnw';
-var dropoffs = turf.featureCollection([]);
-var nothing = turf.featureCollection([]);
-var pointHopper = {};
-var startLocation = [8.2989119,47.0384419]; 
-var endLocation = [8.2989119,47.0384419];
-var lastQueryTime = 0;
-var lastAtRestaurant = 0;
-var keepTrack = [];
-var currentSchedule = [];
-var currentRoute = null;
+
+var pointHopper = [];
+var newHopper = [];
+
 
 var calls = {
     
@@ -27,14 +21,21 @@ var calls = {
             type:'POST',
             crossDomain: true
         }).done(function(data) {
+            $('.sidebar.navbar-nav').empty();
+            var countItems = 0;
+            var errors = 0;
             mapContainer.on('load', function() {
                 $.each(data,function(key,value){
                     if(value.address){
-                        map.addmarker(value.telegram.key,value.address,value.telegram);
+                        map.addmarker(value.address,value.telegram);
+                        if(value.telegram.parsed){ countItems++;}
+                        else{ errors++; }
                     }
                 });
-                map.updateDropoffs(dropoffs);
-                
+                $('#deviceCounter').html(countItems+' decoded devices total');
+                $('#deviceErrors').html(errors+' devices with no data or decoding errors');
+                $('#successInfo,#errorInfo,#routingInfo').slideDown(1200);
+               
             });
             
         });
@@ -59,17 +60,19 @@ var map = {
         //make the map all fancy and 3D building-y
         this.showBuildings();
         
-        //create the dropoff layer to add navigation
-        this.addDropoffs();
         
-        //add the routing layer to show route
-        this.addrouteLayer();
+
+        
         
         
         
     },
     
-    addmarker : function(markerkey,location,data){
+    addmarker : function(location,data){
+        
+        //if point has no data, return
+        if(!data.parsed)
+            return false;
         
         var mapboxClient = mapboxSdk({ accessToken: mapboxgl.accessToken });
         //geocode location
@@ -80,35 +83,57 @@ var map = {
         }).send()
             .then(function (response) {
                 if (response && response.body && response.body.features && response.body.features.length) {
+                    
                     var feature = response.body.features[0];
                     
                     //build data table
+                    //var appendData = data.generatedata(data.parsed.data);
                     var appendData = '<ul>';
                     $.each(data.parsed.data,function(key,value){
                         appendData+='<li>';
                         if(key == 'Special Functions'){
                             
                             $.each(value,function(fk,fv){
-                                appendData+='byte='+fv.byte+'=0x'+fv.data+' ';
+                                appendData+='byte'+fv.byte+'=0x'+fv.data+' ';
                             });
                             
                         }else{
                             appendData+=key+':'+value;
                         }
+                        
                         appendData+='</li>';
                     });
+                    newHopper.push([feature.center[0],feature.center[1]]);
+                    appendData+='<li>Geocoded: '+feature.center[0]+','+feature.center[1]+'</li>';
                     appendData+='<ul>';
                     
                     
                     //add to dropoffs
-                    map.newDropoff(mapContainer.unproject(feature.center));
+                    //map.newDropoff(mapContainer.unproject(feature.center));
                     
+                    $('.sidebar.navbar-nav').append(
+                    
+                        '<li class="nav-item dropdown">'+
+                        '  <a class="nav-link dropdown-toggle devDetailsListItem" href="#" id="'+data.parsed.meterID+'" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">'+
+                        '    <i class="fas fa-fw fa-tachometer-alt"></i>'+
+                        '    <span>'+data.parsed.devType+' '+data.parsed.meterID+ '</span>'+
+                        '  </a>'+
+                        '  <div class="dropdown-menu" aria-labelledby="pagesDropdown" x-placement="bottom-start" style="position: absolute; will-change: transform; top: 0px; left: 0px; transform: translate3d(5px, 56px, 0px);">'+
+                        appendData+
+                        '  </div>'+
+                        '</li>'
+
+                    );
+                    
+                    
+
                     //add marker with styled label
-                    markers[markerkey] = new mapboxgl.Marker()
+                    markers['m_'+data.parsed.meterID] = new mapboxgl.Marker()
                         .setLngLat(feature.center)
                         .setPopup(new mapboxgl.Popup({ offset: 25 }) // add popups
                         .setHTML('<h3>'+data.parsed.devType+' '+data.parsed.meterID + '</h3><p>' + appendData + '</p>'))
                         .addTo(mapContainer);
+                        
                 }
             });
         
@@ -157,128 +182,66 @@ var map = {
         
     },
     
-    addDropoffs : function(){
-        
-        mapContainer.on('load', function() {
-            mapContainer.addLayer({
-                id: 'dropoffs-symbol',
-                type: 'symbol',
-                source: {
-                  data: dropoffs,
-                  type: 'geojson'
-                },
-                layout: {
-                  'icon-allow-overlap': true,
-                  'icon-ignore-placement': true
-                  //'icon-image': 'marker-15'
-                }
-            });
-        });
-        
-    },
     
     newDropoff : function(coords) {
         // Store the clicked point as a new GeoJSON feature with
-        // two properties: `orderTime` and `key`
-        var pt = turf.point(
-          [coords.lng, coords.lat],
-          {
-            orderTime: Date.now(),
-            key: Math.random()
-          }
-        );
-        dropoffs.features.push(pt);
-        pointHopper[pt.properties.key] = pt;
+        pointHopper.push(coords);
     },
 
-    updateDropoffs : function(geojson) {
-        console.log(geojson);
-        mapContainer.getSource('dropoffs-symbol').setData(geojson);
-    },
-    
-    addrouteLayer : function(){
-        mapContainer.on('load', function() {
-            mapContainer.addSource('route', {
-              type: 'geojson',
-              data: nothing
-            });
-
-            mapContainer.addLayer({
-              id: 'routeline-active',
-              type: 'line',
-              source: 'route',
-              layout: {
-                'line-join': 'round',
-                'line-cap': 'round'
-              },
-              paint: {
-                'line-color': '#3887be',
-                'line-width': {
-                  base: 1,
-                  stops: [[12, 3], [22, 12]]
-                }
-              }
-            }, 'waterway-label');
-        });
-    },
+   
     
     assembleQueryURL : function() {
 
         // Store the location of the truck in a variable called coordinates
-        var coordinates = [startLocation];
-        var distributions = [];
-        keepTrack = [startLocation];
+        var coordinates = [];
+        //var distributions = [];
+        //keepTrack = [startLocation];
+        //console.log(startLocation);
         
         // Create an array of GeoJSON feature collections for each point
-        var restJobs = map.objectToArray(pointHopper);
+        //var restJobs = map.objectToArray(pointHopper);
        
-        if (restJobs.length > 0) {
+        if (newHopper.length > 0) {
 
-          
-          var needToPickUp = restJobs.filter(function(d, i) {
-            return d.properties.orderTime > lastAtRestaurant;
-          }).length > 0;
-
-         
-          if (needToPickUp) {
-            var restaurantIndex = coordinates.length;
-            // Add the restaurant as a coordinate
-            coordinates.push(endLocation);
-            // push the restaurant itself into the array
-            keepTrack.push(pointHopper.warehouse);
-          }
           var ia = 0;
-          restJobs.forEach(function(d, i) {
-            if(ia > 9)return;
-            // Add dropoff to list
-            keepTrack.push(d);
-            coordinates.push(d.geometry.coordinates);
-            //console.log(d.geometry.coordinates);
-            // if order not yet picked up, add a reroute
-            if (needToPickUp && d.properties.orderTime > lastAtRestaurant) {
-              //distributions.push(restaurantIndex + ',' + (coordinates.length - 1));
+          var lastlat = false;
+          var lastlng = false;
+          
+          newHopper.forEach(function(d, i) {
+            
+            
+            if(ia > 23)return;
+            var distanceFromLast = map.calcCrow(lastlat, lastlng, d[0],d[1])
+            
+            
+            if(!lastlat || !lastlng) {
+                
+                coordinates.push([d[0],d[1]]);
+                ia++;
+                lastlat = d[0];
+                lastlng = d[1];
+                
             }
-            ia++;
+            //else{
+            else if(distanceFromLast > 0.01){ //check if the previous added point is far enough to constitute need for directions
+                console.log('in',distanceFromLast);
+                
+                coordinates.push([d[0],d[1]]);
+                ia++;
+                lastlat = d[0];
+                lastlng = d[1];
+                
+            }
+            
           });
+          
         }
         
         // Set the profile to `driving`
-        // Coordinates will include the current location of the truck,
-        return 'https://api.mapbox.com/optimized-trips/v1/mapbox/driving/' + coordinates.join(';') + '?distributions=' + distributions.join(';') + '&overview=full&steps=true&geometries=geojson&source=first&access_token=' + mapboxgl.accessToken;
+        return 'https://api.mapbox.com/directions/v5/mapbox/driving/' + coordinates.join(';') + '?geometries=geojson&access_token=' + mapboxgl.accessToken;
     },
 
-    objectToArray : function(obj) {
-        
-        //console.log(Object.keys(obj));
-
-        var routeGeoJSON = Object.keys(obj).map(function(key){
-         
-          return obj[key];
-        
-        });
-        
-        return routeGeoJSON;
-    },
+    
     
     requestOptimizedroute : function(){
         
@@ -288,30 +251,130 @@ var map = {
             method: 'GET',
             url: urlh
           }).done(function(data) {
-            // Create a GeoJSON feature collection
-            //console.log(data);
-            var routeGeoJSON = turf.featureCollection([turf.feature(data.trips[0].geometry)]);
-
-            // If there is no route provided, reset
-            if (!data.trips[0]) {
-              routeGeoJSON = nothing;
-            } else {
-              // Update the `route` source by getting the route source
-              // and setting the data equal to routeGeoJSON
-              mapContainer.getSource('route')
-                .setData(routeGeoJSON);
-            }        
+              
+            //return false;
+            var route = data.routes[0].geometry;
             
+            
+            mapContainer.addLayer({
+                id: 'routeline-active',
+                type: 'line',
+                source: {
+                    type: 'geojson',
+                    data: {
+                        type: 'Feature',
+                        geometry: route
+                    }
+                },
+                layout: {
+                      "line-join": "round",
+                      "line-cap": "round"
+                  },
+                paint: {
+                    'line-width':{ 
+                        base :1,
+                        stops: [[12,3],[22,12]]
+                    },
+                    'line-color': '#3887be',
+                    
+                }
+            },'waterway-label');
+            
+            mapContainer.addLayer({
+                id: 'routearrows',
+                type: 'symbol',
+                 source: {
+                    type: 'geojson',
+                    data: {
+                        type: 'Feature',
+                        geometry: route
+                    }
+                },
+                layout: {
+                  'symbol-placement': 'line',
+                  'text-field': '▶',
+                  'text-size': {
+                    base: 1,
+                    stops: [[12, 24], [22, 60]]
+                  },
+                  'symbol-spacing': {
+                    base: 1,
+                    stops: [[12, 30], [22, 160]]
+                  },
+                  'text-keep-upright': false
+                },
+                paint: {
+                  'text-color': '#3887be',
+                  'text-halo-color': 'hsl(55, 11%, 96%)',
+                  'text-halo-width': 3
+                }
+              }, 'waterway-label');
+            
+       
         });
+        
+    },
+    //This function takes in latitude and longitude of two location and returns the distance between them as the crow flies (in km)
+    calcCrow : function(lat1, lon1, lat2, lon2){
+        var R = 6371; // km
+        var dLat = map.toRad(lat2-lat1);
+        var dLon = map.toRad(lon2-lon1);
+        var lat1 = map.toRad(lat1);
+        var lat2 = map.toRad(lat2);
+
+        var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+          Math.sin(dLon/2) * Math.sin(dLon/2) * Math.cos(lat1) * Math.cos(lat2); 
+        var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+        var d = R * c;
+        return d;
+      },
+
+      // Converts numeric degrees to radians
+      toRad : function(Value) 
+      {
+          return Value * Math.PI / 180;
+      }
+      
+  }; //map Object end
+
+var data = {
+    
+    generatedata : function(data){
+        var appendData = '';
+        $.each(data.parsed.data,function(key,value){
+            appendData+='<li>';
+            if(key == 'Special Functions'){
+
+                $.each(value,function(fk,fv){
+                    appendData+='byte'+fv.byte+'=0x'+fv.data+' ';
+                });
+
+            }else{
+                appendData+=key+':'+value;
+            }
+
+            appendData+='</li>';
+        });
+        
+        return appendData;
+        
     }
-};
+    
+    
+}
 
 $(document).ready(function(){
       
     map.loadMap();
     calls.getData();
-    $('body').on( "click", "#getRoutes", function() {
+    $('body').on( "click", "#getRoutes,#routing", function() {
        map.requestOptimizedroute();
     });
+    $('body').on("click", ".devDetailsListItem",function(){
+        //console.log($(this).attr('id'));
+        //markers[$(this).attr('id')].openPopup();
+        $('#m_'+$(this).attr('id')).trigger('click');
+    });
 
+    
 });

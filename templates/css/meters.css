@@ -24,11 +24,24 @@
     font-size:12px;
     font-weight: bold;
 }
-.mapboxgl-popup ul{
+.mapboxgl-popup ul,.dropdown-menu ul{
      margin:0px;
      padding:0px;
      list-style-type: none;
 }
-.mapboxgl-popup ul li{
+.mapboxgl-popup ul li,.dropdown-menu ul li{
      font-size:10px;
+}
+.dropdown-menu ul li{
+    padding-left:5px;
+}
+
+.nav-item.dropdown{
+    line-height: 1;
+    padding-top:0px;
+    padding-bottom: 0px;
+}
+
+.infoWindowC{
+    display:none;
 }
