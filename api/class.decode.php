@@ -15,7 +15,7 @@ class decoder{
         $this->method   = $this->getMethod(0); //store Cipher method from library
     }
     
-    public function getDecodedData($inputKey,$inputData){
+    public function decodeData($inputKey,$inputData){
                 
         if($inputKey!=null || $inputData!=null){
             
@@ -28,7 +28,6 @@ class decoder{
             $header = implode('',array_slice($this->hexData, 0, -$packetLengthPlusVerification, true));
             $res =  bin2hex(openssl_decrypt(hex2bin($datat), $this->method, hex2bin($this->key), OPENSSL_RAW_DATA | OPENSSL_ZERO_PADDING, hex2bin($this->iv)));
             
-            //var_dump(array('header'=>$header,'data'=>$res));
             return array('header'=>$header,'data'=>$res);
             
         }
@@ -36,7 +35,7 @@ class decoder{
     }
     public function decode(){
         
-            $this->key      ='11627177330679ABBBDD341BEFF243F7';
+            $this->key      = '11627177330679ABBBDD341BEFF243F7';
             $this->data     = '4644e61e11102223100e7212112324e61e3c03000030058431bf8dc5630561faddd0644ef029144116e9891f80d4760b4e32f8ea3f12f8e20b8ff212db30b50c0587f505e5d10c';
             $this->hexData  = str_split($this->data, 2);
             $this->iv       = $this->generateInitVector(); //M Field + A Field + 8 bytes Acces No
@@ -58,7 +57,7 @@ class decoder{
             echo $this->method.':<br />';
 
             $output = openssl_decrypt(hex2bin($datat), $this->method, hex2bin($this->key), OPENSSL_RAW_DATA | OPENSSL_ZERO_PADDING, hex2bin($this->iv));
-            var_dump(bin2hex($output));
+            
             
         
     }
@@ -75,7 +74,7 @@ class decoder{
         $Mfield = $this->hexData[2].$this->hexData[3]; //M-Field (bits 2-4)
         $Afield = $this->hexData[11].$this->hexData[12].$this->hexData[13].$this->hexData[14].$this->hexData[17].$this->hexData[18];  //A-Field (bits 4-8)
         $accesnum = str_repeat($this->hexData[19],8); //get access number with CRC missing (bit 19). 8 bits of that
-        echo $Mfield.$Afield.$accesnum.' <br />___<br/ >';
+        //echo $Mfield.$Afield.$accesnum.' <br />___<br/ >';
         return $Mfield.$Afield.$accesnum;
         
     }

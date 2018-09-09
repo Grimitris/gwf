@@ -81,31 +81,26 @@ class api{
         foreach($this->meters as $k=>$v){
             $this->parser = new mbusParser();
             if(substr($v['telegram']['encoded'],46,4)!='2f2f'){ //check if telegram is already decoded
-                $decodedTelegram = $this->decoder->getDecodedData($v['telegram']['key'],$v['telegram']['encoded']);
+                $decodedTelegram = $this->decoder->decodeData($v['telegram']['key'],$v['telegram']['encoded']);
             }else{
                 $decodedTelegram['data'] = substr($v['telegram']['encoded'],46);
             }
             
             if($decodedTelegram['data'] && $decodedTelegram['data']!=null){
-                $this->meters[$k]['telegram']['decoded'] = $decodedTelegram['data'];
-                $this->meters[$k]['telegram']['header'] = $decodedTelegram['header'];
-                if($debug){
-                     //debugging stuff. will remove
-                    echo 'Key: '.$v['telegram']['key'].'<br />';
-                    echo 'Encoded: '.$v['telegram']['encoded'].'<br />';
-                    echo 'Header: '.implode(' ',str_split($decodedTelegram['header'], 2)).'<br />';
-                    echo 'Decoded: '.implode(' ',str_split($decodedTelegram['data'], 2)).'<br />...<br />';
-                    
-                }
-               
+                                
                 $parsedData = $this->parser->parseMbus($decodedTelegram['data'],$decodedTelegram['header'],($debug)?true:false);
                 $this->meters[$k]['telegram']['parsed']= $parsedData;
+                
+                //destroy unwanted data after use
+                unset($this->meters[$k]['telegram']['key']);
+                unset($this->meters[$k]['telegram']['encoded']);
                 
             }
             
             
         }
         
+        //return all data
         return $this->meters;
         
     }

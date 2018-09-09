@@ -30,7 +30,7 @@ var calls = {
             mapContainer.on('load', function() {
                 $.each(data,function(key,value){
                     if(value.address){
-                        map.addmarker(value.telegram.key,value.address,value.telegram.parsed);
+                        map.addmarker(value.telegram.key,value.address,value.telegram);
                     }
                 });
                 map.updateDropoffs(dropoffs);
@@ -81,7 +81,25 @@ var map = {
             .then(function (response) {
                 if (response && response.body && response.body.features && response.body.features.length) {
                     var feature = response.body.features[0];
-            
+                    
+                    //build data table
+                    var appendData = '<ul>';
+                    $.each(data.parsed.data,function(key,value){
+                        appendData+='<li>';
+                        if(key == 'Special Functions'){
+                            
+                            $.each(value,function(fk,fv){
+                                appendData+='byte='+fv.byte+'=0x'+fv.data+' ';
+                            });
+                            
+                        }else{
+                            appendData+=key+':'+value;
+                        }
+                        appendData+='</li>';
+                    });
+                    appendData+='<ul>';
+                    
+                    
                     //add to dropoffs
                     map.newDropoff(mapContainer.unproject(feature.center));
                     
@@ -89,7 +107,7 @@ var map = {
                     markers[markerkey] = new mapboxgl.Marker()
                         .setLngLat(feature.center)
                         .setPopup(new mapboxgl.Popup({ offset: 25 }) // add popups
-                        .setHTML('<h3>' + markerkey + '</h3><p>' + data + '</p>'))
+                        .setHTML('<h3>'+data.parsed.devType+' '+data.parsed.meterID + '</h3><p>' + appendData + '</p>'))
                         .addTo(mapContainer);
                 }
             });
@@ -297,10 +315,3 @@ $(document).ready(function(){
     });
 
 });
-
-/*
- * https://api.mapbox.com/optimized-trips/v1/mapbox/driving/8.2989119,47.0384419;8.2989119,47.0384419;6.695703551636683,47.24420591937948;6.695695186917732,47.24420327073392;6.695696039735537,47.244203262344655;6.695703551636683,47.24420591937948;6.695696642613257,47.244203278192174;6.695703551636683,47.24420591937948;6.695703551636683,47.24420591937948;6.695703551636683,47.24420591937948;6.695696407781128,47.24420406691132;6.695703551636683,47.24420591937948?overview=full&steps=true&geometries=geojson&source=first&access_token=pk.eyJ1IjoiZGltcGFwIiwiYSI6ImNqbHJwZXpoaDA3NjMzcHFyNnlmY3lnc2YifQ.iwXWCA1zRNqmvsQpJkbsnw
- https://api.mapbox.com/optimized-trips/v1/mapbox/driving/8.2989119,47.0384419;8.2989119,47.0384419;6.695703551636683,47.24420591937948;6.695695186917732,47.24420327073392;6.695696039735537,47.244203262344655;6.695703551636683,47.24420591937948;6.695696642613257,47.244203278192174;6.695703551636683,47.24420591937948;6.695703551636683,47.24420591937948;6.695703551636683,47.24420591937948;6.695696407781128,47.24420406691132;6.695703551636683,47.24420591937948?distributions=&overview=full&steps=true&geometries=geojson&source=first&access_token=pk.eyJ1IjoiZGltcGFwIiwiYSI6ImNqbHJwZXpoaDA3NjMzcHFyNnlmY3lnc2YifQ.iwXWCA1zRNqmvsQpJkbsnw
- *
- *https://api.mapbox.com/optimized-trips/v1/mapbox/driving/8.2989119,47.0384419;8.2989119,47.0384419;7.19626812685155,47.24420591937948;7.19625976213257,47.24420327073392;7.196260614950404,47.244203262344655;7.19626812685155,47.24420591937948;7.196261217828152,47.244203278192174;7.19626812685155,47.24420591937948;7.19626812685155,47.24420591937948;7.19626812685155,47.24420591937948;7.1962609829959945,47.24420406691132;7.19626812685155,47.24420591937948?distributions=&overview=full&steps=true&geometries=geojson&source=first&access_token=pk.eyJ1IjoiZGltcGFwIiwiYSI6ImNqbHJwZXpoaDA3NjMzcHFyNnlmY3lnc2YifQ.iwXWCA1zRNqmvsQpJkbsnw
- **/
