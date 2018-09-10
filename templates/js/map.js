@@ -29,7 +29,10 @@ var calls = {
                 $.each(data,function(key,value){
                     if(value.address){ //if there's on address, it can't be displayed on the map
                         map.addmarker(value.address,value.telegram); //add the marker with the info box
-                        if(value.telegram.parsed){ countItems++;} //count total successful attempts
+                        if(value.telegram.parsed){
+                            countItems++;
+                            console.log(value.telegram.parsed);
+                        } //count total successful attempts
                         else{ errors++; } //count failed attempts
                     }
                 });
@@ -62,16 +65,10 @@ var map = {
         //make the map all fancy and 3D building-y
         this.showBuildings();
         
-        
-
-        
-        
-        
-        
     },
     
     addmarker : function(location,data){ //add marker with styled label
-        
+        console.log(data);
         //if point has no data, return
         if(!data.parsed)
             return false;
@@ -118,6 +115,7 @@ var map = {
                         '<li class="nav-item dropdown">'+
                         '  <a class="nav-link dropdown-toggle devDetailsListItem" href="#" id="'+data.parsed.meterID+'" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">'+
                         '    <i class="fas fa-fw fa-tachometer-alt"></i>'+
+                        //'    <span>'+data.parsed.devType+'</span>'+
                         '    <span>'+data.parsed.devType+' '+data.parsed.meterID+ '</span>'+
                         '  </a>'+
                         '  <div class="dropdown-menu" aria-labelledby="pagesDropdown" x-placement="bottom-start" style="position: absolute; will-change: transform; top: 0px; left: 0px; transform: translate3d(5px, 56px, 0px);">'+
@@ -132,6 +130,7 @@ var map = {
                         .setLngLat(feature.center)
                         .setPopup(new mapboxgl.Popup({ offset: 25 }) // add popups
                         .setHTML('<h3>'+data.parsed.devType+' '+data.parsed.meterID + '</h3><p>' + appendData + '</p>'))
+                        //.setHTML('<h3>'+data.parsed.devType+'</h3><p>' + appendData + '</p>'))
                         .addTo(mapContainer);
                         
                 }

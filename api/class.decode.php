@@ -13,6 +13,7 @@ class decoder{
     public function __construct() {
         
         $this->method   = $this->getMethod(0); //store Cipher method from library
+        $this->data = false;
     }
     
     /*

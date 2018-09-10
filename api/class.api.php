@@ -77,6 +77,8 @@ class api{
         
         $this->getdata(true);
         foreach($this->meters as $k=>$v){
+            //var_dump();
+            $decodedTelegram = false;
             $this->parser = new mbusParser();
             if(substr($v['telegram']['encoded'],46,4)!='2f2f'){ //check if telegram is already decoded
                 $decodedTelegram = $this->decoder->decodeData($v['telegram']['key'],$v['telegram']['encoded']);

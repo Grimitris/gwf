@@ -30,16 +30,18 @@ class mbusParser{
        if($packet) $this->packet = $packet;
        if($header) $this->header = $header;
            
-           
+        //var_dump($this->header);
         $headersplit = str_split($this->header,2);
         $this->hopper = str_split($this->packet, 2);
 
         //Initialize return data
         $toreturn = [];
         $toreturn['data'] = [];
-
+        
+        //var_dump($headersplit);
+        
         $toreturn['devType'] = $this->deviceType[$headersplit[18]];
-        $toreturn['meterID'] = $headersplit[16].$headersplit[15].$headersplit[14].$headersplit[13];
+        $toreturn['meterID'] = $headersplit[14].$headersplit[13].$headersplit[12].$headersplit[11];
 
 
         //Start by receiving the first DIF
