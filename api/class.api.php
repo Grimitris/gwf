@@ -10,8 +10,12 @@ class api{
         
     }
     
+    /*
+     * CURL for the data. Store to global array for usage on decoding and parsing.
+     */
     public function getdata($return){
         
+        //get the device addresses
         $ch = curl_init(); 
         curl_setopt($ch, CURLOPT_URL, "https://bitbakery.ch/payload/api.php?action=getAdress"); 
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1); 
@@ -21,13 +25,11 @@ class api{
             
             if(!isset($this->meters[$k])) $this->meters[$k] = array();
             $this->meters[$k]['address'] = $v;
-            
-            
         }
         
         curl_close($ch);
 
-        
+        //get all the keys for the devices
         $ch = curl_init(); 
         curl_setopt($ch, CURLOPT_URL, "https://bitbakery.ch/payload/api.php?action=getKeys"); 
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1); 
@@ -40,13 +42,11 @@ class api{
                 $this->meters[$k]['telegram'] = array();
             } 
             $this->meters[$k]['telegram']['key']= $v;
-      
         }
         
-        //var_dump( $this->meters);
         curl_close($ch);
         
-        
+        //get telegrams and join with the previous data
         $ch = curl_init(); 
         curl_setopt($ch, CURLOPT_URL, "https://bitbakery.ch/payload/api.php?action=getTelegrams"); 
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1); 
@@ -59,21 +59,19 @@ class api{
                 $this->meters[$k]['telegram'] = array();
             }
             $this->meters[$v->serial]['telegram']['encoded']= $v->raw;
-            $this->meters[$v->serial]['telegram']['timestamp']= $v->timestamp;
-            
-            //append data to $this->meters with primary key, the serial number of the meter
-            
+            $this->meters[$v->serial]['telegram']['timestamp']= $v->timestamp;            
         }
         
-        curl_close($ch);
-        if(!$return) echo json_encode($this->meters);
+        curl_close($ch); //kill curl session
         
-        //run decoder object and get decoded data
+        if(!$return) echo json_encode($this->meters); //for debugging
         
-        //run parser with decoded data
         
     }
     
+    /*
+     * Pass the received data by the decoder on decoder.decodeData
+     */
     public function getDecodedData($debug){
         $this->decoder = new decoder();
         
@@ -87,7 +85,8 @@ class api{
             }
             
             if($decodedTelegram['data'] && $decodedTelegram['data']!=null){
-                                
+                
+                //Send decoded data over to the data parser
                 $parsedData = $this->parser->parseMbus($decodedTelegram['data'],$decodedTelegram['header'],($debug)?true:false);
                 $this->meters[$k]['telegram']['parsed']= $parsedData;
                 
@@ -105,6 +104,9 @@ class api{
         
     }
     
+    /*
+     * Store the parsed data to the global meters variable
+     */
     public function getParsedData(){
         
         $this->parser = new mbusParser();

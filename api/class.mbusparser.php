@@ -3,24 +3,28 @@
 class mbusParser{
     
     private $packet;
-    private $difs;
     private $vifs;
     private $header;
     private $hopper;
     private $curpos;
     
+    /*
+     * Initialize some values
+     */
     public function __construct() {
         
-       $this->packet = '2f2f027531052c0d0269e113115502f4a50200426cbf1302fd744313046d372eb1140f0102d82f2f2f2f2f2f2f2f2f2f';
-       
-       $this->difs = $this->getDif();
-       $this->vifs = $this->getVif();
-       $this->deviceType = $this->getDeviceType();
-       $this->curpos = 2;
+       $this->vifs = $this->getVif(); //store available vifs
+       $this->deviceType = $this->getDeviceType(); //store device types
+       $this->curpos = 2; //ignore the decoding verification
 
         
     }
     
+    /*
+     * Mbus byte traversal method
+     * Order: DIF (get length), VIF (get type), VIFE (if it exists), Data (according to DIF length)
+     * 
+     */
     public function parseMbus($packet,$header,$debug){
        
        if($packet) $this->packet = $packet;
@@ -43,20 +47,22 @@ class mbusParser{
 
         //Traverse the telegram while there are still data
         $i = 0;
-        while($curdif['status'] == 'OK'){
-            //var_dump($curdif);
+        while($curdif['status'] == 'OK'){ //move the array until it's out of data
+            
             $difHops = (int)$curdif['hops']; //get data size
             $difType = $curdif['type']; //get data type
-
+            
+            //Find the DIF
             $vifData = $this->calculateVif();
             $this->curpos++;
 
             $thisVif = $vifData['vif']; //get vif
             $thisVifPost = $vifData['postfix']; //get vif
             $thisVifMulti = $vifData['multiplier']; //get vif
-
+            
+            //Parse the data and include it to the return data
             $parsed = $this->parseData($difHops,$difType,$thisVif,$thisVifMulti,$thisVifPost);
-            if($difType=='special') $thisVif = 'Special Functions';
+            if($difType=='special') $thisVif = 'Special Functions'; //Just for it to be pretty on output
             if($toreturn['data'][$thisVif]){
                 $i++;
                 $thisVif=$thisVif.'_'.$i;
@@ -65,7 +71,7 @@ class mbusParser{
             $toreturn['data'][$thisVif] = $parsed;
            
 
-            $curdif = $this->calculateDif($this->hopper[$this->curpos]);
+            $curdif = $this->calculateDif($this->hopper[$this->curpos]); //get the next DIF to start over
 
 
         }
@@ -75,6 +81,9 @@ class mbusParser{
         
     }
     
+    /*
+     * Data Parsing. Depending on type, different parsing approach is needed
+     */
     private function parseData($difhops,$difType,$thisVif,$thisVifMulti,$thisVifPost){
         
         $toParse = [];
@@ -94,24 +103,21 @@ class mbusParser{
         }else{
             
             switch($difType){
-                case 'bcd':
-                    //get vif and check for multiplier
+                case 'bcd': //easy mode
                     $calc = (float)implode('',array_reverse($toParse))*((isset($thisVifMulti) && $thisVifMulti)?(float)$thisVifMulti:1);
-                    return (string)$calc.$thisVifPost;
+                    return (string)$calc.$thisVifPost; //attach data description if available
                     break;
-                case 'IntBin':
-                    //
+                case 'IntBin': //same as BCD, but data has to be converted to decimal
                     $calc = (float)hexdec(implode('',array_reverse($toParse)))*((isset($thisVifMulti) && $thisVifMulti)?(float)$thisVifMulti:1);
-                    return (string)$calc.$thisVifPost;
+                    return (string)$calc.$thisVifPost; //attach data description if available
                     break;
                 case 'varlength':
-                    //
                     $calc = hexdec(implode('',array_reverse($toParse)));
-                    return (string)$calc.$thisVifPost;
+                    return (string)$calc.$thisVifPost; //attach data description if available
                     break;
                 case 'special':
                     //manufacturer special
-                    
+                    //Construct the custom manufacturer part as mentioned in the notes
                     $thisData = $this->hopper[$this->curpos];
                     $toret = [];
                     while($thisData != '2f'){
@@ -139,6 +145,9 @@ class mbusParser{
         
     }
     
+    /*
+     * Date Decoding.
+     */
     private function decodeDate($data){
         
         foreach($data as $k=>$v){
@@ -147,6 +156,7 @@ class mbusParser{
 
         }
         
+        //CP16 date
         if(count($data) == 2){
             $day = bindec(strrev(substr($convdata,0,5)));
             $month = bindec(strrev(substr($convdata,8,4)));
@@ -154,7 +164,7 @@ class mbusParser{
             
             return $day.'.'.$month.'.'.$year;
             
-            
+        //CP32 datetime
         }else{
             
             $min = bindec(strrev(substr($convdata,0,6)));
@@ -172,7 +182,9 @@ class mbusParser{
         
     }
 
-    
+    /*
+     * return Dif type, description and byte length
+     */
     private function calculateDif($dif){
         
         if($dif == '2f') return array('status'=>'end');
@@ -248,24 +260,7 @@ class mbusParser{
         }
         $this->curpos++;
         return array('hops'=>$hop,'type'=>$type,'status'=>'OK');
-        
-        
-        /*
-         *  Len     Code Meaning                Code Meaning
-            --
-            0       0000 No data                1000 Selection for Readout
-            8       0001 8 Bit Integer/Binary   1001 2 digit BCD
-            16      0010 16 Bit Integer/Binary  1010 4 digit BCD
-            24      0011 24 Bit Integer/Binary  1011 6 digit BCD
-            32      0100 32 Bit Integer/Binary  1100 8 digit BCD
-            32/N    0101 32 Bit Real            1101 variable length
-            48      0110 48 Bit Integer/Binary  1110 12 digit BCD
-            64      0111 64 Bit Integer/Binary  1111 Special Functions
-         
-         */
-        
-        
-        
+      
         
     }
     
@@ -277,30 +272,9 @@ class mbusParser{
         
     }
     
-    private function getDif(){
-          
-        return array(
-             '00'=>array('length'=>0,'name'=>'No data')
-            ,'01'=>array('length'=>8,'name'=>'8 Bit Integer/Binary')
-            ,'02'=>array('length'=>16,'name'=>'16 Bit Integer/Binary')
-            ,'03'=>array('length'=>24,'name'=>'24 Bit Integer/Binary')
-            ,'04'=>array('length'=>32,'name'=>'32 Bit Integer/Binary')
-            ,'05'=>array('length'=>32,'name'=>'32 Bit Real Var Length')
-            ,'06'=>array('length'=>48,'name'=>'48 Bit Integer/Binary')
-            ,'07'=>array('length'=>64,'name'=>'64 Bit Integer/Binary')
-            ,'08'=>array('length'=>0,'name'=>'Selection for Readout')
-            ,'09'=>array('length'=>8,'name'=>'2 digit BCd')
-            ,'0a'=>array('length'=>16,'name'=>'4 digit BCd')
-            ,'0b'=>array('length'=>24,'name'=>'6 digit BCd')
-            ,'0c'=>array('length'=>32,'name'=>'8 digit BCd')
-            ,'0d'=>array('length'=>32,'name'=>'variable length')
-            ,'0e'=>array('length'=>48,'name'=>'12 digit BCD')
-            ,'0f'=>array('length'=>64,'name'=>'Special Functions')
-        );
-        
-        
-    }    
-    
+    /*
+     * Get the VIF and move the position
+     */
     private function calculateVif($vif){
         
         if($this->hopper[$this->curpos] == 'fd' || $this->hopper[$this->curpos] == 'fb'){
@@ -312,8 +286,10 @@ class mbusParser{
         
     }
 
- 
-    
+    /*
+     * VIF storage. With added some details for the known tested values.
+     * This has to be edited a bit for perfect support of all types of VIFS
+     */
     private function getVif(){
         
             return array(
@@ -334,11 +310,11 @@ class mbusParser{
                 ,'0e'=>array('vif'=>'Energy MJ')
                 ,'0f'=>array('vif'=>'Energy 10<sup>7</sup> J')
                 ,'10'=>array('vif'=>'Volume')
-                ,'11'=>array('vif'=>'Volume','multiplier'=>0.00001,'postfix'=>'m<sup>3</sup>')
-                ,'12'=>array('vif'=>'Volume','multiplier'=>0.0001,'postfix'=>'m<sup>3</sup>')
+                ,'11'=>array('vif'=>'Volume','multiplier'=>0.00001,'postfix'=>'m<sup>5</sup>')
+                ,'12'=>array('vif'=>'Volume','multiplier'=>0.0001,'postfix'=>'m<sup>4</sup>')
                 ,'13'=>array('vif'=>'Volume','multiplier'=>0.001,'postfix'=>'m<sup>3</sup>') //10^-3
-                ,'14'=>array('vif'=>'Volume','multiplier'=>0.01,'postfix'=>'m<sup>3</sup>')
-                ,'15'=>array('vif'=>'Volume','multiplier'=>0.1,'postfix'=>'m<sup>3</sup>')
+                ,'14'=>array('vif'=>'Volume','multiplier'=>0.01,'postfix'=>'m<sup>2</sup>')
+                ,'15'=>array('vif'=>'Volume','multiplier'=>0.1,'postfix'=>'m<sup>1</sup>')
                 ,'16'=>array('vif'=>'Volume')
                 ,'17'=>array('vif'=>'Volume 10<sup>1</sup> m<sup>3</sup>')
                 ,'18'=>array('vif'=>'Mass g')
@@ -449,10 +425,11 @@ class mbusParser{
     }
          
     
-    
+    /*
+     * Device types storage.
+     */
     private function getDeviceType(){
-        
-        
+
         return array(
             '00'=>'Other',
             '01'=>'Oil',

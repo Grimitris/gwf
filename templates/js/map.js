@@ -1,5 +1,5 @@
 /* 
- * Telegrams GWF map loading functions
+ * Telegrams GWF map loading functions and dom manipulation
  * Access token: pk.eyJ1IjoiZGltcGFwIiwiYSI6ImNqbHJwZXpoaDA3NjMzcHFyNnlmY3lnc2YifQ.iwXWCA1zRNqmvsQpJkbsnw
  * Author: Dimitris Papadopoulos
  */
@@ -7,13 +7,13 @@
 var mapContainer;
 var markers = [];
 mapboxgl.accessToken = 'pk.eyJ1IjoiZGltcGFwIiwiYSI6ImNqbHJwZXpoaDA3NjMzcHFyNnlmY3lnc2YifQ.iwXWCA1zRNqmvsQpJkbsnw';
-
 var pointHopper = [];
 var newHopper = [];
 
 
 var calls = {
     
+    //curl local API for complete data
     getData : function(){
         $.ajax({
             url: "http://kaagar.com/gwf/?call=decodedJsonData",
@@ -24,16 +24,18 @@ var calls = {
             $('.sidebar.navbar-nav').empty();
             var countItems = 0;
             var errors = 0;
+            //wait for map to load to start adding elements to it
             mapContainer.on('load', function() {
                 $.each(data,function(key,value){
-                    if(value.address){
-                        map.addmarker(value.address,value.telegram);
-                        if(value.telegram.parsed){ countItems++;}
-                        else{ errors++; }
+                    if(value.address){ //if there's on address, it can't be displayed on the map
+                        map.addmarker(value.address,value.telegram); //add the marker with the info box
+                        if(value.telegram.parsed){ countItems++;} //count total successful attempts
+                        else{ errors++; } //count failed attempts
                     }
                 });
-                $('#deviceCounter').html(countItems+' decoded devices total');
-                $('#deviceErrors').html(errors+' devices with no data or decoding errors');
+                //update the UI with above data.
+                $('#deviceCounter').html('<strong>'+countItems+'</strong> decoded devices total');
+                $('#deviceErrors').html('<strong>'+errors+'</strong> devices with missing data or decoding errors');
                 $('#successInfo,#errorInfo,#routingInfo').slideDown(1200);
                
             });
@@ -48,7 +50,7 @@ var calls = {
 
 var map = {
     
-    loadMap : function(){
+    loadMap : function(){ //Load the map with mapbox
         
         mapContainer = new mapboxgl.Map({
             container: 'mapArea', // container id
@@ -68,7 +70,7 @@ var map = {
         
     },
     
-    addmarker : function(location,data){
+    addmarker : function(location,data){ //add marker with styled label
         
         //if point has no data, return
         if(!data.parsed)
@@ -87,7 +89,7 @@ var map = {
                     var feature = response.body.features[0];
                     
                     //build data table
-                    //var appendData = data.generatedata(data.parsed.data);
+                    
                     var appendData = '<ul>';
                     $.each(data.parsed.data,function(key,value){
                         appendData+='<li>';
@@ -124,8 +126,6 @@ var map = {
                         '</li>'
 
                     );
-                    
-                    
 
                     //add marker with styled label
                     markers['m_'+data.parsed.meterID] = new mapboxgl.Marker()
@@ -139,7 +139,7 @@ var map = {
         
     },
     
-    showBuildings : function(){
+    showBuildings : function(){ //Use 3D buildings plugin to show 3D buildings on zoom
         
         mapContainer.on('load', function() {
             // Insert the layer beneath any symbol layer.
@@ -182,24 +182,15 @@ var map = {
         
     },
     
-    
     newDropoff : function(coords) {
         // Store the clicked point as a new GeoJSON feature with
         pointHopper.push(coords);
     },
-
-   
     
-    assembleQueryURL : function() {
+    assembleQueryURL : function() { //generate the directions service URI for mapbox
 
         // Store the location of the truck in a variable called coordinates
         var coordinates = [];
-        //var distributions = [];
-        //keepTrack = [startLocation];
-        //console.log(startLocation);
-        
-        // Create an array of GeoJSON feature collections for each point
-        //var restJobs = map.objectToArray(pointHopper);
        
         if (newHopper.length > 0) {
 
@@ -243,10 +234,11 @@ var map = {
 
     
     
-    requestOptimizedroute : function(){
+    requestOptimizedroute : function(){ //call the mapbox directions service and display the results on map
         
-        var urlh = map.assembleQueryURL();
+        var urlh = map.assembleQueryURL(); //get the URI
         
+        //call for the data
         $.ajax({
             method: 'GET',
             url: urlh
@@ -255,7 +247,7 @@ var map = {
             //return false;
             var route = data.routes[0].geometry;
             
-            
+            //add a polyline layer to the map with the returned data from the directions service
             mapContainer.addLayer({
                 id: 'routeline-active',
                 type: 'line',
@@ -280,6 +272,7 @@ var map = {
                 }
             },'waterway-label');
             
+            //add arrows with direction so that the user can understand the polyline better. Same input data as the polyline
             mapContainer.addLayer({
                 id: 'routearrows',
                 type: 'symbol',
@@ -314,6 +307,7 @@ var map = {
         });
         
     },
+    
     //This function takes in latitude and longitude of two location and returns the distance between them as the crow flies (in km)
     calcCrow : function(lat1, lon1, lat2, lon2){
         var R = 6371; // km
@@ -337,44 +331,17 @@ var map = {
       
   }; //map Object end
 
-var data = {
-    
-    generatedata : function(data){
-        var appendData = '';
-        $.each(data.parsed.data,function(key,value){
-            appendData+='<li>';
-            if(key == 'Special Functions'){
 
-                $.each(value,function(fk,fv){
-                    appendData+='byte'+fv.byte+'=0x'+fv.data+' ';
-                });
-
-            }else{
-                appendData+=key+':'+value;
-            }
-
-            appendData+='</li>';
-        });
-        
-        return appendData;
-        
-    }
-    
-    
-}
-
+//Document initialization actions for UI
 $(document).ready(function(){
       
     map.loadMap();
     calls.getData();
     $('body').on( "click", "#getRoutes,#routing", function() {
        map.requestOptimizedroute();
+       if($(this).attr('id')=='routing'){
+           $('#routing').slideUp(1000);
+       }
     });
-    $('body').on("click", ".devDetailsListItem",function(){
-        //console.log($(this).attr('id'));
-        //markers[$(this).attr('id')].openPopup();
-        $('#m_'+$(this).attr('id')).trigger('click');
-    });
-
-    
+s    
 });

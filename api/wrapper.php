@@ -8,35 +8,21 @@ include 'class.api.php';
 
 class wrapper{
     
-    private $decoder;
-    private $parser;
     private $api;
     
     public function __construct() {
-         $this->decoder = new decoder();
-         $this->parser = new mbusParser();
+
          $this->api = new api();
     }
     
+    //handle calls requested
     public function run($call){
       
        switch($call){
-           case 'decode':
-               $this->decoder->decode();
-               die();
-           case 'parse':
-               $this->parser->parseMbus();
-               die();
-           case 'getdata':
-               $this->api->getdata();
-               die();
-           case 'getdecodeddata':
-               $this->api->getDecodedData(true);
-               die();
            case 'decodedJsonData':
                echo json_encode($this->api->getDecodedData());
                die();
-           default: die('Dorothy is lost.');
+           default: header('Location: http://kaagar.com/gwf/templates/index.html'); //show UI if something is wrong
            
        }
         

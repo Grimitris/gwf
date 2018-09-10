@@ -1,20 +1,20 @@
 <?php
 /*
- * Decide whethere it's an API call or return interface 
+ * get the request data and decide what to do with it. Run interface if something isn't there. 
  */
-include 'api/wrapper.php';
-$wrapper = new wrapper();
+include 'api/wrapper.php'; //require the wrapper
+$wrapper = new wrapper(); //init wrapper
 
 if(isset($_REQUEST)){
    
     if($_REQUEST['call']){
         $wrapper->run($_REQUEST['call']);
     }else{
-        echo'Something went wrong.';
+        header('Location: http://kaagar.com/gwf/templates/index.html');
     }
     
 }else{
     
-    echo 'run template here';
+    header('Location: http://kaagar.com/gwf/templates/index.html');
     
 }

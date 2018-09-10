@@ -15,17 +15,24 @@ class decoder{
         $this->method   = $this->getMethod(0); //store Cipher method from library
     }
     
+    /*
+     * Decode the AES-128 data
+     */
     public function decodeData($inputKey,$inputData){
-                
+        
+        //Some entries don't have all the data available. Skip those.
         if($inputKey!=null || $inputData!=null){
             
             $this->key      = $inputKey;
             $this->data     = $inputData;
             $this->hexData  = str_split($this->data, 2);
-            $this->iv       = $this->generateInitVector(); //M Field + A Field + 8 bytes Acces No
-            $packetLengthPlusVerification = $this->hexData[0]+2;
+            $this->iv       = $this->generateInitVector();
+            $packetLengthPlusVerification = $this->hexData[0]+2; //+2 for the decoding confirmation bits.
+            //get the decoded part
             $datat = implode('',array_slice($this->hexData, -$packetLengthPlusVerification, $packetLengthPlusVerification, true));
+            //get the header
             $header = implode('',array_slice($this->hexData, 0, -$packetLengthPlusVerification, true));
+            //perform the decode
             $res =  bin2hex(openssl_decrypt(hex2bin($datat), $this->method, hex2bin($this->key), OPENSSL_RAW_DATA | OPENSSL_ZERO_PADDING, hex2bin($this->iv)));
             
             return array('header'=>$header,'data'=>$res);
@@ -33,35 +40,10 @@ class decoder{
         }
         
     }
-    public function decode(){
-        
-            $this->key      = '11627177330679ABBBDD341BEFF243F7';
-            $this->data     = '4644e61e11102223100e7212112324e61e3c03000030058431bf8dc5630561faddd0644ef029144116e9891f80d4760b4e32f8ea3f12f8e20b8ff212db30b50c0587f505e5d10c';
-            $this->hexData  = str_split($this->data, 2);
-            $this->iv       = $this->generateInitVector(); //M Field + A Field + 8 bytes Acces No
-            
-            //get the last 46 bytes of data (plus two which are the verification bytes)
-            echo 'This is a test scenario. Run with inputs for return real data<br />';
-            $packetLengthPlusVerification = $this->hexData[0]+2;
-            $datat  = implode('',array_slice($this->hexData, -$packetLengthPlusVerification, $packetLengthPlusVerification, true));
-            
-            
-            echo 'data: '.$this->data.'<br />';
-            echo 'No header data: '.$datat.'<br />';
-            echo 'Key: '.$this->key.'<br />';
-            //echo 'Method: '.$this->method.'<br />';
-            echo 'Method Cipher IV length: '.openssl_cipher_iv_length($this->method).'<br />';
-            echo 'IV: '.$this->iv.'<br />';
-            echo 'decoding done: <br/>';
 
-            echo $this->method.':<br />';
-
-            $output = openssl_decrypt(hex2bin($datat), $this->method, hex2bin($this->key), OPENSSL_RAW_DATA | OPENSSL_ZERO_PADDING, hex2bin($this->iv));
-            
-            
-        
-    }
-    
+    /*
+     * Find the available cipher methods
+     */
     private function getMethod($num){
         
         $ciphers = openssl_get_cipher_methods();
@@ -69,12 +51,15 @@ class decoder{
     
     }
     
+    /*
+     * Get the Initialization Vector (IV) from the telegram 
+     * M Field + A Field + 8 bytes Acces No
+     */
     private function generateInitVector(){
-
+        
         $Mfield = $this->hexData[2].$this->hexData[3]; //M-Field (bits 2-4)
         $Afield = $this->hexData[11].$this->hexData[12].$this->hexData[13].$this->hexData[14].$this->hexData[17].$this->hexData[18];  //A-Field (bits 4-8)
         $accesnum = str_repeat($this->hexData[19],8); //get access number with CRC missing (bit 19). 8 bits of that
-        //echo $Mfield.$Afield.$accesnum.' <br />___<br/ >';
         return $Mfield.$Afield.$accesnum;
         
     }
