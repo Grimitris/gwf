@@ -16,8 +16,8 @@ class mbusParser{
        $this->vifs = $this->getVif(); //store available vifs
        $this->deviceType = $this->getDeviceType(); //store device types
        $this->curpos = 2; //ignore the decoding verification
-
-        
+       $this->packet = false;
+        $this->header = false;
     }
     
     /*
@@ -33,7 +33,12 @@ class mbusParser{
         //var_dump($this->header);
         $headersplit = str_split($this->header,2);
         $this->hopper = str_split($this->packet, 2);
-
+        
+//        var_dump($headersplit);
+//        echo '<br />';
+//        var_dump($this->hopper);
+//        
+//        echo '<br />---<br />';
         //Initialize return data
         $toreturn = [];
         $toreturn['data'] = [];

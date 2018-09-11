@@ -73,14 +73,17 @@ class api{
      * Pass the received data by the decoder on decoder.decodeData
      */
     public function getDecodedData($debug){
-        $this->decoder = new decoder();
         
         $this->getdata(true);
         foreach($this->meters as $k=>$v){
-            //var_dump();
+//            var_dump($v['telegram']['key']);
+//            echo '<br />---<br />';
+            $this->decoder = new decoder();
             $decodedTelegram = false;
             $this->parser = new mbusParser();
             if(substr($v['telegram']['encoded'],46,4)!='2f2f'){ //check if telegram is already decoded
+//                var_dump($v['telegram']['encoded']);
+//                echo '<br/>----<br />';
                 $decodedTelegram = $this->decoder->decodeData($v['telegram']['key'],$v['telegram']['encoded']);
             }else{
                 $decodedTelegram['data'] = substr($v['telegram']['encoded'],46);
